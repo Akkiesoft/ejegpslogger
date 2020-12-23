@@ -1,0 +1,15 @@
+[Unit]
+Description = Ejepippi GPS Logger
+Requires = network-online.target
+Wants = network-online.target
+After = network-online.target
+
+[Service]
+WorkingDirectory = /home/pi/ejegpslogger
+ExecStart = /usr/bin/python3 /home/pi/ejegpslogger/ejegpslogger.py
+Restart = always
+Type = simple
+
+[Install]
+WantedBy = multi-user.target
+

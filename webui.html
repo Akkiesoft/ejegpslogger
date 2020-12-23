@@ -1,0 +1,91 @@
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <title>Ejepippi GPS Logger</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <style>
+      * { font-family: sans-serif; }
+      button { margin: 1em; padding: 1em; font-size: 150%; }
+      #map { height: 300px; }
+    </style>
+  </head>
+  <body>
+    <h1>GPS Logger</h1>
+    <div id="box">NOW:<br>N:<br>E:<br>sats:</div>
+    <button id="startlog" onClick="startlog()" disabled>Start</button>
+    <button id="stoplog" onClick="stoplog()" disabled>Stop</button>
+    <div id="map"></div>
+    <h2><a id="map" href="https://www.google.com/maps/">MAP</a></h2>
+  </body>
+
+  <script>
+var map = L.map('map').setView([35.54288, 139.51721], 28);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+L.marker([35.54175, 139.51530]).addTo(map);
+
+var recording;
+
+function startlog() {
+  if (recording != "0") { alert('記録中です。'); return false; }
+  fetch('/rec/start');
+  document.getElementById('startlog').disabled = true;
+  document.getElementById('stoplog').disabled = false;
+}
+function stoplog() {
+  if (recording == "0") { alert('記録が始まっていません。'); return false; }
+  fetch('/rec/stop');
+  document.getElementById('startlog').disabled = false;
+  document.getElementById('stoplog').disabled = true;
+}
+
+function update() {
+  fetch('/location').then(response => response.json()).then(function(j){
+    var data = j;
+    recording = data.recording;
+    if (recording) {
+        document.getElementById('startlog').disabled = true;
+        document.getElementById('stoplog').disabled = false;
+    } else {
+        document.getElementById('startlog').disabled = false;
+        document.getElementById('stoplog').disabled = true;
+    }
+
+    var n = new Date();
+    var m = ("0" + (n.getMonth() + 1)).substr(-2);
+    var d = ("0" + n.getDate()).substr(-2);
+    var h = ("0" + n.getHours()).substr(-2);
+    var i = ("0" + n.getMinutes()).substr(-2);
+    var s = ("0" + n.getSeconds()).substr(-2);
+    nowstr = "" + n.getFullYear() + "/" + m + "/" + d + " " + h + ":" + i + ":" + s;
+
+    var box = document.getElementById('box');
+    box.innerHTML = "NOW: "+ nowstr +"<br>N: "+ data.latitude +"<br>E: "+ data.longitude +"<br>sats: "+ data.sat;
+
+    if (data.latitude && data.longitude) {
+      var link = document.getElementById('map');
+      link.href = "https://www.google.com/maps/"+ data.latitude +","+ data.longitude +",15z";
+    }
+    setTimeout("update()", 1000);
+  });
+}
+
+function add_marker() {
+  fetch('/location').then(response => response.json()).then(function(j){
+    var data = j;
+    if (data.latitude && data.longitude) {
+      map.setView([data.latitude, data.longitude], 28);
+      L.marker([data.latitude, data.longitude]).addTo(map);
+    }
+  });
+  setTimeout("add_marker()", 10000);
+}
+
+setTimeout("update()", 1000);
+setTimeout("add_marker()", 10000);
+  </script>
+
+</html>
